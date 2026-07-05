@@ -98,11 +98,21 @@
   .stop-alert {
     background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
     border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;
-    display: flex; align-items: center; gap: 10px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   }
   .stop-alert .icon { font-size: 20px; }
-  .stop-alert .text { font-size: 13px; }
+  .stop-alert .text { font-size: 13px; flex: 1; }
   .stop-alert .price { font-weight: 700; color: var(--accent3); }
+  .stop-alert .price.green { color: var(--accent); }
+  .refresh-btn {
+    padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05); color: var(--muted);
+    font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;
+  }
+  .refresh-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+  .refresh-btn.spinning { animation: spin 1s linear infinite; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .last-update { font-size: 10px; color: var(--muted); margin-top: 4px; width: 100%; }
   .export-bar {
     position: fixed; bottom: 20px; right: 20px;
     display: flex; gap: 8px;
@@ -150,8 +160,12 @@
   <div class="stop-alert">
     <div class="icon">🚨</div>
     <div class="text">
-      当前持仓 <strong>彤程新材</strong> | 成本 <strong>90.721</strong> | 硬止损 <span class="price">85.80</span> | 浮动亏损约 <span class="price">5.4%</span>
+      当前持仓 <strong>彤程新材</strong> | 成本 <strong>90.721</strong> | 硬止损 <span class="price">85.80</span>
+      | 最新价 <span class="price" id="live-price">--</span>
+      | 浮动盈亏 <span class="price" id="live-pnl">--</span>
+      <button class="refresh-btn" id="refresh-btn" onclick="fetchQuote()">🔄 刷新价格</button>
     </div>
+    <div class="last-update" id="last-update"></div>
   </div>
 
   <!-- New Entry Form -->
@@ -376,9 +390,70 @@ function exportJSON() {
   a.click();
 }
 
+// 自动获取实时行情
+const COST_PRICE = 90.721;
+const STOP_PRICE = 85.80;
+const SYMBOL = '603650';
+
+async function fetchQuote() {
+  const btn = document.getElementById('refresh-btn');
+  const priceEl = document.getElementById('live-price');
+  const pnlEl = document.getElementById('live-pnl');
+  const updateEl = document.getElementById('last-update');
+  
+  btn.classList.add('spinning');
+  btn.textContent = '🔄 获取中...';
+  
+  try {
+    const res = await fetch(`/api/quote/${SYMBOL}`);
+    const data = await res.json();
+    
+    if (data.error) {
+      priceEl.textContent = '获取失败';
+      updateEl.textContent = '错误: ' + data.error;
+      return;
+    }
+    
+    const price = data.price;
+    const pnl = ((price - COST_PRICE) / COST_PRICE * 100).toFixed(2);
+    const pnlClass = price >= COST_PRICE ? 'green' : '';
+    
+    priceEl.textContent = price.toFixed(2);
+    pnlEl.innerHTML = `<span class="price ${pnlClass}">${pnl}%</span>`;
+    
+    const now = new Date();
+    const isMarketOpen = now.getHours() >= 9 && now.getHours() <= 15;
+    const marketNote = isMarketOpen ? '' : '（非交易时间，显示为上一收盘数据）';
+    updateEl.textContent = `数据来源: ${data.source.toUpperCase()} | 行情时间: ${data.date} ${data.time || ''} ${marketNote}`;
+    
+    // 更新交易记录中的当前价格
+    if (trades.length > 0 && trades[0].symbol === '彤程新材') {
+      trades[0].current = price;
+      localStorage.setItem('quant-alpha-trades', JSON.stringify(trades));
+      renderTable();
+    }
+    
+  } catch (e) {
+    priceEl.textContent = '--';
+    updateEl.textContent = '获取失败: ' + e.message;
+  } finally {
+    btn.classList.remove('spinning');
+    btn.textContent = '🔄 刷新价格';
+  }
+}
+
 // Init
 document.getElementById('input-date').value = formatDate();
 renderTable();
+fetchQuote(); // 页面加载时自动获取
+
+// 交易时间每30秒自动刷新
+setInterval(() => {
+  const h = new Date().getHours();
+  if ((h >= 9 && h <= 11) || (h >= 13 && h <= 15)) {
+    fetchQuote();
+  }
+}, 30000);
 </script>
 
 </body>
