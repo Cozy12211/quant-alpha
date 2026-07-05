@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quant Alpha — 交易日志</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  :root {
+    --bg: #0a0e17; --panel: #111827; --accent: #10b981; --accent2: #f59e0b; --accent3: #ef4444;
+    --text: #f3f4f6; --muted: #9ca3af; --border: #1f2937;
+    --blue: #3b82f6; --purple: #8b5cf6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6;
+  }
+  header {
+    background: linear-gradient(90deg, var(--accent), #059669);
+    padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;
+  }
+  header h1 { font-size: 18px; font-weight: 700; }
+  header .badge {
+    background: rgba(255,255,255,0.15); padding: 4px 12px; border-radius: 16px;
+    font-size: 11px; font-weight: 600;
+  }
+  .container { max-width: 1400px; margin: 0 auto; padding: 20px 24px; }
+  .stats-bar {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 20px;
+  }
+  .stat-box {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px; text-align: center;
+  }
+  .stat-value { font-size: 22px; font-weight: 700; }
+  .stat-value.green { color: var(--accent); }
+  .stat-value.red { color: var(--accent3); }
+  .stat-value.blue { color: var(--blue); }
+  .stat-label { font-size: 10px; color: var(--muted); margin-top: 4px; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  .panel h2 {
+    font-size: 15px; font-weight: 600; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .entry-form {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  .form-group {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .form-group label {
+    font-size: 11px; color: var(--muted); font-weight: 500;
+  }
+  .form-group input, .form-group select, .form-group textarea {
+    background: #0d1117; border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 10px; color: var(--text); font-size: 13px; font-family: inherit;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none; border-color: var(--accent);
+  }
+  .form-group.full-width { grid-column: span 4; }
+  .form-group.half-width { grid-column: span 2; }
+  .btn {
+    padding: 10px 24px; border-radius: 8px; border: none;
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: #064e3b; }
+  .btn-primary:hover { background: #34d399; }
+  .btn-secondary { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-export { background: var(--blue); color: white; }
+  table {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    font-size: 12px;
+  }
+  th {
+    text-align: left; padding: 10px 12px;
+    background: #0d1117; color: var(--muted); font-weight: 600; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--border);
+  }
+  td {
+    padding: 10px 12px; border-bottom: 1px solid var(--border);
+  }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 10px; font-weight: 600;
+  }
+  .tag-long { background: rgba(16,185,129,0.15); color: #34d399; }
+  .tag-short { background: rgba(239,68,68,0.15); color: #f87171; }
+  .tag-hold { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .pnl-pos { color: var(--accent); font-weight: 600; }
+  .pnl-neg { color: var(--accent3); font-weight: 600; }
+  .stop-alert {
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .stop-alert .icon { font-size: 20px; }
+  .stop-alert .text { font-size: 13px; }
+  .stop-alert .price { font-weight: 700; color: var(--accent3); }
+  .export-bar {
+    position: fixed; bottom: 20px; right: 20px;
+    display: flex; gap: 8px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📓 Quant Alpha — 交易日志</h1>
+  <div class="badge">每天记录，用数据说话</div>
+</header>
+
+<div class="container">
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat-box">
+      <div class="stat-value blue" id="stat-total">1</div>
+      <div class="stat-label">总交易数</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="stat-winrate">--</div>
+      <div class="stat-label">胜率</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value red" id="stat-pnl">-5.4%</div>
+      <div class="stat-label">累计盈亏</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="stat-avg">--</div>
+      <div class="stat-label">平均盈亏</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value blue" id="stat-hold">1</div>
+      <div class="stat-label">持仓中</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="stat-closed">0</div>
+      <div class="stat-label">已平仓</div>
+    </div>
+  </div>
+
+  <!-- Stop Alert -->
+  <div class="stop-alert">
+    <div class="icon">🚨</div>
+    <div class="text">
+      当前持仓 <strong>彤程新材</strong> | 成本 <strong>90.721</strong> | 硬止损 <span class="price">85.80</span> | 浮动亏损约 <span class="price">5.4%</span>
+    </div>
+  </div>
+
+  <!-- New Entry Form -->
+  <div class="panel">
+    <h2>➕ 新增交易记录</h2>
+    <div class="entry-form">
+      <div class="form-group">
+        <label>日期</label>
+        <input type="date" id="input-date">
+      </div>
+      <div class="form-group">
+        <label>品种</label>
+        <input type="text" id="input-symbol" placeholder="如: 彤程新材">
+      </div>
+      <div class="form-group">
+        <label>方向</label>
+        <select id="input-direction">
+          <option value="long">做多</option>
+          <option value="short">做空</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>仓位(股/手)</label>
+        <input type="number" id="input-size" placeholder="1000">
+      </div>
+      <div class="form-group">
+        <label>成本价</label>
+        <input type="number" step="0.001" id="input-cost" placeholder="90.721">
+      </div>
+      <div class="form-group">
+        <label>硬止损价</label>
+        <input type="number" step="0.001" id="input-stop" placeholder="85.80">
+      </div>
+      <div class="form-group">
+        <label>止盈目标</label>
+        <input type="number" step="0.001" id="input-target" placeholder="105.00">
+      </div>
+      <div class="form-group">
+        <label>当前价/平仓价</label>
+        <input type="number" step="0.001" id="input-current" placeholder="当前价格">
+      </div>
+      <div class="form-group full-width">
+        <label>进场逻辑（大逻辑+技术面+缠论确认）</label>
+        <textarea id="input-reason" rows="2" placeholder="为什么进场？什么信号确认的？"></textarea>
+      </div>
+      <div class="form-group full-width">
+        <label>复盘笔记（情绪/错误/改进）</label>
+        <textarea id="input-review" rows="2" placeholder="这笔交易哪里做得好？哪里要改进？"></textarea>
+      </div>
+      <div class="form-group" style="grid-column: span 4; display: flex; gap: 10px;">
+        <button class="btn btn-primary" onclick="addEntry()">保存记录</button>
+        <button class="btn btn-secondary" onclick="clearForm()">清空</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trade Log Table -->
+  <div class="panel">
+    <h2>📊 交易记录表</h2>
+    <table id="trade-table">
+      <thead>
+        <tr>
+          <th>日期</th>
+          <th>品种</th>
+          <th>方向</th>
+          <th>成本</th>
+          <th>止损</th>
+          <th>止盈</th>
+          <th>当前/平仓</th>
+          <th>盈亏</th>
+          <th>状态</th>
+          <th>逻辑</th>
+        </tr>
+      </thead>
+      <tbody id="trade-tbody">
+        <!-- Entries here -->
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="export-bar">
+  <button class="btn btn-export" onclick="exportCSV()">📥 导出CSV</button>
+  <button class="btn btn-secondary" onclick="exportJSON()">📥 导出JSON</button>
+</div>
+
+<script>
+// Pre-load 彤程新材 entry
+let trades = JSON.parse(localStorage.getItem('quant-alpha-trades')) || [
+  {
+    date: '2025-07-05',
+    symbol: '彤程新材',
+    direction: 'long',
+    cost: 90.721,
+    stop: 85.80,
+    target: null,
+    current: 90.721,
+    reason: '持仓中，硬止损85.8已设定。成本90.721。借消费贷28万建仓。',
+    review: '',
+    status: 'holding'
+  }
+];
+
+function formatDate() {
+  const d = new Date();
+  return d.toISOString().split('T')[0];
+}
+
+function calcPnL(cost, current, direction) {
+  if (!current || current === cost) return 0;
+  const pnl = direction === 'long' ? (current - cost) / cost : (cost - current) / cost;
+  return pnl * 100;
+}
+
+function renderTable() {
+  const tbody = document.getElementById('trade-tbody');
+  let totalPnl = 0, wins = 0, total = 0, holding = 0, closed = 0;
+  
+  tbody.innerHTML = trades.map((t, idx) => {
+    const pnl = calcPnL(t.cost, t.current, t.direction);
+    const pnlClass = pnl > 0 ? 'pnl-pos' : pnl < 0 ? 'pnl-neg' : '';
+    const statusTag = t.status === 'holding' 
+      ? '<span class="tag tag-hold">持仓中</span>' 
+      : pnl > 0 
+        ? '<span class="tag tag-long">盈利</span>' 
+        : '<span class="tag tag-short">亏损</span>';
+    
+    if (t.status === 'holding') holding++;
+    else { closed++; total++; totalPnl += pnl; if (pnl > 0) wins++; }
+    
+    return `
+      <tr data-idx="${idx}">
+        <td>${t.date}</td>
+        <td><strong>${t.symbol}</strong></td>
+        <td>${t.direction === 'long' ? '做多' : '做空'}</td>
+        <td>${t.cost.toFixed(3)}</td>
+        <td style="color:#ef4444">${t.stop ? t.stop.toFixed(2) : '--'}</td>
+        <td style="color:#10b981">${t.target ? t.target.toFixed(2) : '--'}</td>
+        <td>${t.current ? t.current.toFixed(3) : '--'}</td>
+        <td class="${pnlClass}">${t.current ? pnl.toFixed(2) + '%' : '--'}</td>
+        <td>${statusTag}</td>
+        <td style="font-size:11px;color:#9ca3af;max-width:200px;overflow:hidden;text-overflow:ellipsis">${t.reason}</td>
+      </tr>
+    `;
+  }).join('');
+  
+  // Update stats
+  document.getElementById('stat-total').textContent = trades.length;
+  document.getElementById('stat-hold').textContent = holding;
+  document.getElementById('stat-closed').textContent = closed;
+  
+  const avgPnl = closed > 0 ? (totalPnl / closed).toFixed(2) + '%' : '--';
+  document.getElementById('stat-avg').textContent = avgPnl;
+  
+  const winrate = closed > 0 ? Math.round((wins / closed) * 100) + '%' : '--';
+  document.getElementById('stat-winrate').textContent = winrate;
+  
+  // Include holding in PnL display
+  const currentTotal = trades.reduce((sum, t) => sum + calcPnL(t.cost, t.current || t.cost, t.direction), 0);
+  const pnlEl = document.getElementById('stat-pnl');
+  pnlEl.textContent = (currentTotal / trades.length).toFixed(2) + '%';
+  pnlEl.className = 'stat-value ' + (currentTotal >= 0 ? 'green' : 'red');
+}
+
+function addEntry() {
+  const entry = {
+    date: document.getElementById('input-date').value || formatDate(),
+    symbol: document.getElementById('input-symbol').value,
+    direction: document.getElementById('input-direction').value,
+    cost: parseFloat(document.getElementById('input-cost').value) || 0,
+    stop: parseFloat(document.getElementById('input-stop').value) || null,
+    target: parseFloat(document.getElementById('input-target').value) || null,
+    current: parseFloat(document.getElementById('input-current').value) || null,
+    reason: document.getElementById('input-reason').value,
+    review: document.getElementById('input-review').value,
+    status: document.getElementById('input-current').value ? 'closed' : 'holding'
+  };
+  
+  if (!entry.symbol || !entry.cost) {
+    alert('请填写品种和成本价');
+    return;
+  }
+  
+  trades.push(entry);
+  localStorage.setItem('quant-alpha-trades', JSON.stringify(trades));
+  renderTable();
+  clearForm();
+}
+
+function clearForm() {
+  document.getElementById('input-date').value = formatDate();
+  document.getElementById('input-symbol').value = '';
+  document.getElementById('input-cost').value = '';
+  document.getElementById('input-stop').value = '';
+  document.getElementById('input-target').value = '';
+  document.getElementById('input-current').value = '';
+  document.getElementById('input-reason').value = '';
+  document.getElementById('input-review').value = '';
+}
+
+function exportCSV() {
+  const headers = ['日期','品种','方向','成本','止损','止盈','当前价','状态','进场逻辑','复盘'];
+  const rows = trades.map(t => [
+    t.date, t.symbol, t.direction, t.cost, t.stop || '', t.target || '',
+    t.current || '', t.status, t.reason, t.review
+  ]);
+  const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+  
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `quant-alpha-trades-${formatDate()}.csv`;
+  a.click();
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(trades, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `quant-alpha-trades-${formatDate()}.json`;
+  a.click();
+}
+
+// Init
+document.getElementById('input-date').value = formatDate();
+renderTable();
+</script>
+
+</body>
+</html>
