@@ -1,0 +1,27 @@
+# 数据文件
+data/
+*.csv
+*.parquet
+*.h5
+*.db
+
+# 密钥与配置
+config/secrets.json
+.env
+*.key
+
+# 回测缓存
+strategies/backtests/__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# 日志
+logs/
+*.log
+
+# 虚拟环境
+venv/
+.env/
+
+# 系统文件
+.DS_Store
