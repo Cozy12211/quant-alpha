@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quant Alpha — Agent 指挥中心</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  :root {
+    --bg: #0a0e17; --panel: #111827; --accent: #10b981; --accent2: #f59e0b; --accent3: #ef4444;
+    --text: #f3f4f6; --muted: #9ca3af; --border: #1f2937;
+    --blue: #3b82f6; --purple: #8b5cf6; --cyan: #06b6d4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6;
+  }
+  header {
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    padding: 20px 28px; display: flex; align-items: center; justify-content: space-between;
+  }
+  header h1 { font-size: 20px; font-weight: 700; }
+  header .badge {
+    background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 16px;
+    font-size: 11px; font-weight: 600;
+  }
+  .container { max-width: 1400px; margin: 0 auto; padding: 20px 28px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  }
+  .panel h2 {
+    font-size: 15px; font-weight: 600; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .agent-list { display: flex; flex-direction: column; gap: 10px; }
+  .agent-card {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 12px;
+  }
+  .agent-avatar {
+    width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .agent-info { flex: 1; }
+  .agent-name { font-weight: 600; font-size: 13px; }
+  .agent-desc { font-size: 11px; color: var(--muted); }
+  .agent-status {
+    font-size: 10px; padding: 3px 10px; border-radius: 12px; font-weight: 600; white-space: nowrap;
+  }
+  .status-idle { background: rgba(148,163,184,0.15); color: var(--muted); }
+  .status-running { background: rgba(245,158,11,0.15); color: var(--accent2); }
+  .status-done { background: rgba(16,185,129,0.15); color: var(--accent); }
+  .btn {
+    padding: 5px 12px; border-radius: 6px; border: none; font-size: 11px; font-weight: 600;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-top: 8px;
+  }
+  .btn-primary { background: var(--accent); color: #064e3b; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px dashed var(--border); }
+  .status-bar { display: flex; gap: 16px; margin-bottom: 18px; }
+  .stat-box {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; flex: 1; text-align: center;
+  }
+  .stat-value { font-size: 24px; font-weight: 700; color: var(--accent); }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .log-panel {
+    background: #060a12; border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px; font-family: monospace; font-size: 11px; color: var(--muted);
+    max-height: 160px; overflow-y: auto; white-space: pre-wrap;
+  }
+  .quick-card {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; cursor: pointer; transition: all 0.2s;
+  }
+  .quick-card:hover { border-color: var(--accent); }
+  .quick-card .icon { font-size: 20px; margin-bottom: 4px; }
+  .quick-card .label { font-size: 11px; font-weight: 600; }
+  .export-bar {
+    position: fixed; bottom: 20px; right: 20px;
+    display: flex; gap: 8px;
+  }
+  .btn-float {
+    padding: 10px 18px; border-radius: 8px; border: none; font-size: 12px; font-weight: 600;
+    cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .btn-float-primary { background: var(--accent); color: #064e3b; }
+  .question-panel {
+    max-height: 300px; overflow-y: auto;
+  }
+  .question-item {
+    padding: 8px 10px; border-radius: 6px; background: rgba(255,255,255,0.02);
+    margin-bottom: 6px; font-size: 12px; display: flex; align-items: flex-start; gap: 8px;
+  }
+  .question-num {
+    background: var(--accent); color: #064e3b; width: 20px; height: 20px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; flex-shrink: 0;
+  }
+  .question-text { flex: 1; }
+  .question-tag {
+    font-size: 9px; padding: 1px 6px; border-radius: 4px; background: rgba(59,130,246,0.15);
+    color: #60a5fa; white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>💰 Quant Alpha — Agent 指挥中心</h1>
+  <div class="badge">Port: 8767 | 量化交易研究实验室</div>
+</header>
+
+<div class="container">
+
+  <div class="status-bar">
+    <div class="stat-box">
+      <div class="stat-value" id="stat-agents">6</div>
+      <div class="stat-label">Agent 总数</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="stat-strategies">0</div>
+      <div class="stat-label">策略库</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="stat-backtests">0</div>
+      <div class="stat-label">回测次数</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="stat-pnl">--</div>
+      <div class="stat-label">累计收益</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- Left: Agent Team -->
+    <div>
+      <div class="panel">
+        <h2>🤖 交易Agent团队</h2>
+        <div class="agent-list" id="agent-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top: 16px;">
+        <h2>📋 交易诊断问卷</h2>
+        <div class="question-panel" id="question-panel">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Workspace & Logs -->
+    <div>
+      <div class="panel">
+        <h2>📁 项目文件</h2>
+        <div class="quick-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div class="quick-card" onclick="openPath('strategies')">
+            <div class="icon">📈</div>
+            <div class="label">策略库</div>
+          </div>
+          <div class="quick-card" onclick="openPath('data')">
+            <div class="icon">💾</div>
+            <div class="label">市场数据</div>
+          </div>
+          <div class="quick-card" onclick="openPath('research')">
+            <div class="icon">🔬</div>
+            <div class="label">研究报告</div>
+          </div>
+          <div class="quick-card" onclick="openPath('systems')">
+            <div class="icon">⚙️</div>
+            <div class="label">交易系统</div>
+          </div>
+          <div class="quick-card" onclick="openPath('notebooks')">
+            <div class="icon">📓</div>
+            <div class="label">Jupyter</div>
+          </div>
+          <div class="quick-card" onclick="openPath('docs')">
+            <div class="icon">📚</div>
+            <div class="label">文档</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top: 16px;">
+        <h2>📡 运行日志</h2>
+        <div class="log-panel" id="log-panel">
+          <div style="color:#6b7280">[23:55:01] Quant Alpha Agent Hub 初始化完成</div>
+          <div style="color:#6b7280">[23:55:02] 等待用户回答交易诊断问卷...</div>
+          <div style="color:#f59e0b">[23:55:03] ⚠️ 6个Agent待命，需要交易体系参数才能启动</div>
+          <div style="color:#6b7280">[23:55:04] 项目路径: ~/projects/quant-alpha/</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="export-bar">
+  <button class="btn-float btn-float-primary" onclick="copyQuestions()">📋 复制问卷</button>
+</div>
+
+<script>
+const agents = [
+  { id: 'data', name: 'Data-Agent', avatar: '💾', desc: '数据采集、清洗、存储、特征工程', status: 'idle' },
+  { id: 'strategy', name: 'Strategy-Agent', avatar: '📈', desc: '策略研究、信号生成、回测框架', status: 'idle' },
+  { id: 'risk', name: 'Risk-Agent', avatar: '🛡️', desc: '风控系统、止损逻辑、仓位管理', status: 'idle' },
+  { id: 'execution', name: 'Execution-Agent', avatar: '⚡', desc: '订单执行、滑点控制、券商接口', status: 'idle' },
+  { id: 'research', name: 'Research-Agent', avatar: '🔬', desc: '因子研究、市场分析、报告生成', status: 'idle' },
+  { id: 'portfolio', name: 'Portfolio-Agent', avatar: '⚖️', desc: '组合优化、相关性分析、再平衡', status: 'idle' }
+];
+
+const questions = [
+  { num: 1, text: '你的交易经验年限？（0-1年/1-3年/3-5年/5年以上）', tag: '基础' },
+  { num: 2, text: '你目前全职工作还是兼职交易？', tag: '时间' },
+  { num: 3, text: '你能投入交易的时间每天大约多少小时？', tag: '时间' },
+  { num: 4, text: '你的可投资资金规模是多少？（10万以下/10-50万/50-200万/200万以上）', tag: '资金' },
+  { num: 5, text: '你能承受的单笔最大亏损百分比？（1%/3%/5%/10%/更高）', tag: '风控' },
+  { num: 6, text: '你能承受的最大账户回撤？（5%/10%/20%/30%/50%）', tag: '风控' },
+  { num: 7, text: '你主要交易的市场？（A股/港股/美股/期货/数字货币/多市场）', tag: '市场' },
+  { num: 8, text: '你偏好的交易周期？（日内/短线1-5天/中线1-4周/长线1月+）', tag: '周期' },
+  { num: 9, text: '你目前主要用什么分析方式？（基本面/技术面/量化/消息驱动/混合）', tag: '方法' },
+  { num: 10, text: '你是否有过量化交易经验？（完全没有/了解概念/写过策略/实盘运行过）', tag: '量化' },
+  { num: 11, text: '你熟悉的编程语言？（Python/R/MATLAB/不会编程/其他）', tag: '技术' },
+  { num: 12, text: '你是否有统计/数学/金融工程背景？', tag: '背景' },
+  { num: 13, text: '你的交易目标是什么？（稳定收益/超额收益/资产保值/学习成长）', tag: '目标' },
+  { num: 14, text: '你期望的年化收益率？（5-10%/10-20%/20-50%/50%+）', tag: '目标' },
+  { num: 15, text: '你之前最大的单笔亏损是多少？怎么造成的？', tag: '经验' },
+  { num: 16, text: '你是否有过爆仓或大幅回撤的经历？', tag: '经验' },
+  { num: 17, text: '你交易时最常见的情绪问题？（贪婪/恐惧/犹豫/过度自信/没有）', tag: '心理' },
+  { num: 18, text: '你是否能严格遵守交易计划？（总是/经常/偶尔/很少）', tag: '纪律' },
+  { num: 19, text: '你偏好的品种类型？（股票/ETF/期货/期权/数字货币/外汇）', tag: '品种' },
+  { num: 20, text: '你偏好大盘股还是小盘股？（蓝筹/中小创/ST/不区分）', tag: '品种' },
+  { num: 21, text: '你是否使用杠杆？（从不/偶尔/经常/必须）', tag: '杠杆' },
+  { num: 22, text: '你是否有融资融券账户？', tag: '工具' },
+  { num: 23, text: '你是否有期货/期权账户？', tag: '工具' },
+  { num: 24, text: '你是否使用条件单/止损单等自动化工具？', tag: '工具' },
+  { num: 25, text: '你获取信息的主要渠道？（新闻/研报/社群/数据平台/自己分析）', tag: '信息' },
+  { num: 26, text: '你是否关注宏观经济数据？（CPI/PPI/PMI/利率/汇率）', tag: '宏观' },
+  { num: 27, text: '你是否关注行业轮动/板块效应？', tag: '行业' },
+  { num: 28, text: '你是否会看财务报表做基本面分析？', tag: '基本面' },
+  { num: 29, text: '你常用的技术指标？（均线/MACD/KDJ/RSI/布林带/量价/不怎么看）', tag: '技术' },
+  { num: 30, text: '你是否关注资金流向/龙虎榜/北向资金？', tag: '资金' },
+  { num: 31, text: '你是否有过跟单/抄作业的经历？结果如何？', tag: '经验' },
+  { num: 32, text: '你是否会定期复盘交易记录？（每次/每周/每月/很少/从不）', tag: '纪律' },
+  { num: 33, text: '你的交易成本敏感度？（佣金/滑点/印花税是否影响你的决策）', tag: '成本' },
+  { num: 34, text: '你是否考虑过量化策略的过度拟合风险？', tag: '量化' },
+  { num: 35, text: '你是否了解机器学习在金融预测中的局限性？', tag: '技术' },
+  { num: 36, text: '你是否有固定的交易日志/交易日记习惯？', tag: '纪律' },
+  { num: 37, text: '你是否能忍受策略连续亏损 months 而不怀疑它？', tag: '心理' },
+  { num: 38, text: '你对"睡后收入"的期望是全自动还是半自动（需要人工审核）？', tag: '自动化' },
+  { num: 39, text: '你愿意为量化系统投入的学习成本？（时间+金钱）', tag: '投入' },
+  { num: 40, text: '如果有一个策略过去5年年化20%但最大回撤30%，你愿意用吗？', tag: '取舍' },
+  { num: 41, text: '你是否了解A股T+1制度和涨跌停限制对策略的影响？', tag: '规则' },
+  { num: 42, text: '你是否考虑过多策略组合以降低单一策略失效风险？', tag: '组合' },
+];
+
+function renderAgents() {
+  const container = document.getElementById('agent-list');
+  container.innerHTML = agents.map(a => {
+    const statusClass = a.status === 'idle' ? 'status-idle' : a.status === 'running' ? 'status-running' : 'status-done';
+    const statusText = { idle: '⏸️ 等待启动', running: '▶️ 运行中', done: '✅ 就绪' }[a.status];
+    return `
+      <div class="agent-card">
+        <div class="agent-avatar">${a.avatar}</div>
+        <div class="agent-info">
+          <div class="agent-name">${a.name}</div>
+          <div class="agent-desc">${a.desc}</div>
+        </div>
+        <div class="agent-status ${statusClass}">${statusText}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderQuestions() {
+  const container = document.getElementById('question-panel');
+  container.innerHTML = questions.map(q => `
+    <div class="question-item">
+      <div class="question-num">${q.num}</div>
+      <div class="question-text">${q.text}</div>
+      <div class="question-tag">${q.tag}</div>
+    </div>
+  `).join('');
+}
+
+function openPath(dir) {
+  const path = '/Users/cozy/projects/quant-alpha/' + dir;
+  window.open('file://' + path, '_blank');
+}
+
+function copyQuestions() {
+  const text = questions.map(q => `${q.num}. 【${q.tag}】${q.text}`).join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    alert('已复制42个问题到剪贴板');
+  });
+}
+
+renderAgents();
+renderQuestions();
+</script>
+
+</body>
+</html>
