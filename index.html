@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📓 Quant Alpha — 交易日志</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  :root {
+    --bg: #0a0e17; --panel: #111827; --accent: #10b981; --accent2: #f59e0b; --accent3: #ef4444;
+    --text: #f3f4f6; --muted: #9ca3af; --border: #1f2937;
+    --blue: #3b82f6; --purple: #8b5cf6; --cyan: #06b6d4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6;
+  }
+  header {
+    background: linear-gradient(90deg, var(--accent), #059669);
+    padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;
+  }
+  header h1 { font-size: 18px; font-weight: 700; }
+  header .badge {
+    background: rgba(255,255,255,0.15); padding: 4px 12px; border-radius: 16px;
+    font-size: 11px; font-weight: 600;
+  }
+  .container { max-width: 1400px; margin: 0 auto; padding: 20px 24px; }
+
+  /* Stats */
+  .stats-bar {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 12px;
+  }
+  .stats-bar-2 {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;
+  }
+  .stat-box {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px; text-align: center;
+  }
+  .stat-value { font-size: 22px; font-weight: 700; }
+  .stat-value.green { color: var(--accent); }
+  .stat-value.red { color: var(--accent3); }
+  .stat-value.blue { color: var(--blue); }
+  .stat-value.yellow { color: var(--accent2); }
+  .stat-label { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+  /* Alert Box */
+  .alert-box {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 20px; margin-bottom: 20px;
+  }
+  .alert-header {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+  }
+  .alert-header .icon { font-size: 24px; }
+  .alert-header h3 { font-size: 14px; font-weight: 600; }
+  .alert-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  .alert-item {
+    background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px 12px;
+  }
+  .alert-item .label { font-size: 10px; color: var(--muted); }
+  .alert-item .value { font-size: 16px; font-weight: 700; margin-top: 2px; }
+  .alert-item .value.red { color: var(--accent3); }
+  .alert-item .value.green { color: var(--accent); }
+  .alert-item .value.yellow { color: var(--accent2); }
+  .alert-commitment {
+    margin-top: 12px; padding: 10px 14px;
+    background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
+    border-radius: 8px; font-size: 13px;
+  }
+  .alert-commitment strong { color: var(--accent3); }
+
+  /* CoCo Review Panel */
+  .coco-panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; margin-bottom: 20px;
+    border-left: 3px solid var(--purple);
+  }
+  .coco-panel h2 {
+    font-size: 15px; font-weight: 600; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px; color: var(--purple);
+  }
+  .coco-section {
+    margin-bottom: 14px;
+  }
+  .coco-section h4 {
+    font-size: 12px; font-weight: 600; color: var(--accent2);
+    margin-bottom: 6px;
+  }
+  .coco-section p, .coco-section li {
+    font-size: 12px; color: var(--muted); line-height: 1.7;
+  }
+  .coco-section ul { padding-left: 18px; }
+  .coco-section .warning {
+    color: var(--accent3); font-weight: 500;
+  }
+  .coco-section .tip {
+    color: var(--accent); font-weight: 500;
+  }
+
+  /* Checklist */
+  .checklist-panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; margin-bottom: 16px;
+    border-left: 3px solid var(--accent2);
+  }
+  .checklist-panel h2 {
+    font-size: 15px; font-weight: 600; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px; color: var(--accent2);
+  }
+  .checklist-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px; margin-bottom: 8px;
+    background: rgba(255,255,255,0.03); border-radius: 8px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .checklist-item:hover { background: rgba(255,255,255,0.06); border: 1px solid rgba(245,158,11,0.2); }
+  .checklist-item input[type="checkbox"] {
+    width: 18px; height: 18px; margin-top: 2px; cursor: pointer;
+    accent-color: var(--accent);
+  }
+  .checklist-item label {
+    font-size: 13px; color: var(--text); cursor: pointer; flex: 1;
+  }
+  .checklist-item .hint {
+    font-size: 11px; color: var(--muted); margin-top: 2px;
+  }
+  .checklist-status {
+    margin-top: 12px; padding: 10px 14px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; text-align: center;
+  }
+  .checklist-status.pending {
+    background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: var(--accent2);
+  }
+  .checklist-status.ready {
+    background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: var(--accent);
+  }
+
+  /* Entry Form */
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  .panel h2 {
+    font-size: 15px; font-weight: 600; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .entry-form {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  .form-group {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .form-group label {
+    font-size: 11px; color: var(--muted); font-weight: 500;
+  }
+  .form-group input, .form-group select, .form-group textarea {
+    background: #0d1117; border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 10px; color: var(--text); font-size: 13px; font-family: inherit;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none; border-color: var(--accent);
+  }
+  .form-group.full-width { grid-column: span 4; }
+  .form-group.half-width { grid-column: span 2; }
+  .btn {
+    padding: 10px 24px; border-radius: 8px; border: none;
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: #064e3b; }
+  .btn-primary:hover { background: #34d399; }
+  .btn-secondary { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-export { background: var(--blue); color: white; }
+  .btn-warning { background: var(--accent3); color: white; }
+
+  /* Trade Tags */
+  .tag-group {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px;
+  }
+  .tag-checkbox {
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 10px; cursor: pointer;
+    transition: all 0.15s; font-size: 12px; color: var(--muted);
+  }
+  .tag-checkbox:hover { border-color: var(--accent); color: var(--text); }
+  .tag-checkbox input { accent-color: var(--accent); cursor: pointer; }
+  .tag-checkbox.checked { border-color: var(--accent); color: var(--accent); background: rgba(16,185,129,0.08); }
+  .trade-tag {
+    display: inline-block; padding: 1px 6px; border-radius: 4px;
+    font-size: 9px; font-weight: 600; margin-right: 4px;
+    background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3);
+  }
+
+  /* Table */
+  table {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    font-size: 12px;
+  }
+  th {
+    text-align: left; padding: 10px 12px;
+    background: #0d1117; color: var(--muted); font-weight: 600; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--border);
+  }
+  td {
+    padding: 10px 12px; border-bottom: 1px solid var(--border);
+  }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 10px; font-weight: 600;
+  }
+  .tag-long { background: rgba(16,185,129,0.15); color: #34d399; }
+  .tag-short { background: rgba(239,68,68,0.15); color: #f87171; }
+  .tag-hold { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .tag-empty { background: rgba(59,130,246,0.15); color: #60a5fa; }
+  .tag-noop { background: rgba(156,163,175,0.15); color: #9ca3af; }
+  .pnl-pos { color: var(--accent); font-weight: 600; }
+  .pnl-neg { color: var(--accent3); font-weight: 600; }
+
+  /* Review text expand */
+  .review-text {
+    font-size: 11px; color: var(--muted); line-height: 1.6;
+    max-width: 300px;
+  }
+  .review-text .owner { color: var(--text); }
+  .review-text .coco-note {
+    color: var(--purple); margin-top: 6px; padding-top: 6px;
+    border-top: 1px solid var(--border);
+  }
+
+  .export-bar {
+    position: fixed; bottom: 20px; right: 20px;
+    display: flex; gap: 8px;
+  }
+
+  /* Buy/Sell Suggestion */
+  .suggestion-box {
+    background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.25);
+    border-radius: 10px; padding: 14px 18px; margin-bottom: 16px;
+  }
+  .suggestion-box h3 {
+    font-size: 13px; font-weight: 600; color: var(--cyan); margin-bottom: 8px;
+  }
+  .suggestion-box p {
+    font-size: 12px; color: var(--muted); line-height: 1.7;
+  }
+  .suggestion-box .action {
+    color: var(--text); font-weight: 500;
+  }
+
+  @media (max-width: 900px) {
+    .stats-bar { grid-template-columns: repeat(4, 1fr); }
+    .alert-grid { grid-template-columns: repeat(2, 1fr); }
+    .entry-form { grid-template-columns: repeat(2, 1fr); }
+    .form-group.full-width { grid-column: span 2; }
+  }
+  @media (max-width: 600px) {
+    .stats-bar { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  /* Mode Toggle */
+  .mode-toggle {
+    display: flex; gap: 4px;
+    background: rgba(0,0,0,0.3); padding: 4px; border-radius: 10px;
+  }
+  .mode-btn {
+    padding: 6px 16px; border-radius: 8px; border: none;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    background: transparent; color: var(--muted); transition: all 0.2s;
+  }
+  .mode-btn.active {
+    background: var(--accent); color: #064e3b;
+  }
+  .mode-btn:hover:not(.active) { color: var(--text); }
+
+  .panel-hidden { display: none !important; }
+
+  /* Quote refresh */
+  .quote-refresh {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border);
+    background: rgba(59,130,246,0.1); color: var(--blue);
+    font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .quote-refresh:hover { background: rgba(59,130,246,0.2); }
+  .quote-refresh.spinning { animation: spin 1s linear infinite; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  /* Chart */
+  .chart-container {
+    background: #0d1117; border-radius: 10px; padding: 16px;
+    height: 220px; position: relative; overflow: hidden;
+  }
+  .chart-svg { width: 100%; height: 100%; }
+  .chart-line { fill: none; stroke-width: 2; stroke-linecap: round; }
+  .chart-area { fill-opacity: 0.15; }
+  .chart-grid { stroke: rgba(255,255,255,0.05); stroke-width: 1; }
+  .chart-label { font-size: 9px; fill: var(--muted); }
+  .chart-point { r: 3; transition: r 0.2s; }
+  .chart-point:hover { r: 5; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📓 Quant Alpha — 交易日志</h1>
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="mode-trade" onclick="switchMode('trade')">📈 交易模式</button>
+    <button class="mode-btn" id="mode-review" onclick="switchMode('review')">📊 复盘模式</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Stats Row 1 -->
+  <div class="stats-bar">
+    <div class="stat-box">
+      <div class="stat-value blue" id="stat-total">1</div>
+      <div class="stat-label">总交易数</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="stat-winrate">0%</div>
+      <div class="stat-label">胜率</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value red" id="stat-pnl">-7.75%</div>
+      <div class="stat-label">累计盈亏</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value red" id="stat-avg">-7.75%</div>
+      <div class="stat-label">平均盈亏</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value blue" id="stat-hold">1</div>
+      <div class="stat-label">持仓中</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="stat-closed">0</div>
+      <div class="stat-label">已平仓</div>
+    </div>
+  </div>
+
+  <!-- Stats Row 2: Advanced Metrics -->
+  <div class="stats-bar-2">
+    <div class="stat-box">
+      <div class="stat-value" id="stat-hold-days">--</div>
+      <div class="stat-label">平均持仓周期(天)</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="stat-profit-ratio">--</div>
+      <div class="stat-label">盈亏比</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value red" id="stat-max-drawdown">--</div>
+      <div class="stat-label">最大回撤</div>
+    </div>
+  </div>
+
+  <!-- Position Allocation Bar -->
+  <div class="panel" style="border-left: 3px solid var(--blue);" data-mode="shared">
+    <h2 style="color: var(--blue);">📊 仓位分布与操作空间</h2>
+    <div style="margin-bottom: 14px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span style="font-size: 12px; color: var(--muted);">现金</span>
+        <span style="font-size: 12px; font-weight: 600; color: var(--blue);">1,394.96 元</span>
+      </div>
+      <div style="background: #0d1117; border-radius: 6px; height: 22px; overflow: hidden;">
+        <div style="width: 0.6%; height: 100%; background: linear-gradient(90deg, var(--blue), #60a5fa); border-radius: 6px; transition: width 0.5s;"></div>
+      </div>
+    </div>
+    <div style="margin-bottom: 14px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span style="font-size: 12px; color: var(--muted);">彤程新材（持仓中）</span>
+        <span style="font-size: 12px; font-weight: 600; color: var(--accent3);">251,070.00 元</span>
+      </div>
+      <div style="background: #0d1117; border-radius: 6px; height: 22px; overflow: hidden;">
+        <div style="width: 99.4%; height: 100%; background: linear-gradient(90deg, var(--accent3), #f87171); border-radius: 6px; transition: width 0.5s;"></div>
+      </div>
+    </div>
+    <div style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 16px;">⚠️</span>
+      <div style="font-size: 12px; color: var(--text);">
+        <strong>可用操作空间不足</strong> — 现金仅占总资产 0.6%，无法开新仓或补仓
+        <div style="color: var(--muted); margin-top: 2px;">建议：下次建仓预留至少 <strong style="color: var(--accent);">30% 现金</strong>，单票不超过 <strong style="color: var(--accent);">50% 仓位</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alert Box -->
+  <div class="alert-box">
+    <div class="alert-header">
+      <div class="icon">🚨</div>
+      <h3>持仓警报 — 彤程新材</h3>
+      <button class="quote-refresh" id="quote-refresh-btn" onclick="fetchQuote()">🔄 刷新行情</button>
+    </div>
+    <div class="alert-grid">
+      <div class="alert-item">
+        <div class="label">成本价</div>
+        <div class="value">90.721</div>
+      </div>
+      <div class="alert-item">
+        <div class="label">最新价</div>
+        <div class="value red" id="alert-price">83.69</div>
+      </div>
+      <div class="alert-item">
+        <div class="label">浮动盈亏</div>
+        <div class="value red" id="alert-pnl">-7.75%</div>
+      </div>
+      <div class="alert-item">
+        <div class="label">10%回撤线</div>
+        <div class="value yellow">227,316元</div>
+      </div>
+    </div>
+    <div id="quote-status" style="font-size: 11px; color: var(--muted); margin-top: 8px; text-align: center;">
+      📅 收盘数据: 2026-07-07 01:16 | 实时刷新: 交易时间点击「刷新行情」
+    </div>
+    <div style="font-size: 10px; color: var(--muted); text-align: center; margin-top: 4px;">
+      💡 提示: 收盘后数据由 CoCo 每日更新，盘中可手动刷新
+    </div>
+    <div class="alert-commitment">
+      <strong>⚠️ 承诺：</strong>总资产跌破 <strong>227,316元</strong> 时，无条件清仓止损，停手复盘3天。
+      <span style="color:var(--muted);font-size:11px;margin-left:8px;">记录时间: 2026-07-06 23:51</span>
+    </div>
+  </div>
+
+  <!-- Pre-Market Checklist -->
+  <div class="checklist-panel" id="checklist-panel" data-mode="trade">
+    <h2>📋 开盘前决策检查清单（必须全部完成）</h2>
+    <div class="checklist-item" onclick="toggleChecklist(0)">
+      <input type="checkbox" id="ck-0" onchange="updateChecklist()">
+      <label for="ck-0">
+        <strong>1.</strong> 今天的市场阶段是什么？
+        <div class="hint">冰点 / 启动 / 确认 / 高潮 / 退潮 — 选错阶段 = 亏损</div>
+      </label>
+    </div>
+    <div class="checklist-item" onclick="toggleChecklist(1)">
+      <input type="checkbox" id="ck-1" onchange="updateChecklist()">
+      <label for="ck-1">
+        <strong>2.</strong> 如果全仓，我是否能承受-10%回撤？
+        <div class="hint">退学炒股规则：回撤线触发必须无条件执行</div>
+      </label>
+    </div>
+    <div class="checklist-item" onclick="toggleChecklist(2)">
+      <input type="checkbox" id="ck-2" onchange="updateChecklist()">
+      <label for="ck-2">
+        <strong>3.</strong> 这笔交易的止损价是否已设定？
+        <div class="hint">不设止损 = 裸奔；设了不执行 = 摆设</div>
+      </label>
+    </div>
+    <div class="checklist-item" onclick="toggleChecklist(3)">
+      <input type="checkbox" id="ck-3" onchange="updateChecklist()">
+      <label for="ck-3">
+        <strong>4.</strong> 这是信号驱动，还是情绪驱动？
+        <div class="hint">信号 = 量价确认；情绪 = 希望 / 恐惧 / 踏空</div>
+      </label>
+    </div>
+    <div class="checklist-item" onclick="toggleChecklist(4)">
+      <input type="checkbox" id="ck-4" onchange="updateChecklist()">
+      <label for="ck-4">
+        <strong>5.</strong> 如果这笔亏了，我今晚能睡着吗？
+        <div class="hint">影响睡眠的仓位 = 过度仓位</div>
+      </label>
+    </div>
+    <div class="checklist-status pending" id="checklist-status">
+      ⚠️ 请完成以上5项检查，才能提交新交易
+    </div>
+  </div>
+
+  <!-- CoCo Review Panel -->
+  <div class="coco-panel" data-mode="review">
+    <h2>🧠 CoCo 复盘批注</h2>
+    <div class="coco-section">
+      <h4>📌 当前状态诊断</h4>
+      <ul>
+        <li>全仓单吊一只股票，仓位 <span class="warning">99.4%</span>，无操作空间</li>
+        <li>浮亏 <span class="warning">-7.75%</span>，已跌破-5%止损线，现用-10%回撤线</li>
+        <li>借消费贷建仓，压力资金影响决策质量</li>
+      </ul>
+    </div>
+    <div class="coco-section">
+      <h4>⚠️ 关键风险</h4>
+      <ul>
+        <li>今日最低价 <span class="warning">82.70</span>，距离成本线已跌 <span class="warning">8.8%</span></li>
+        <li>若明日继续跌约 <span class="warning">2%</span>，将触发227,316元回撤线</li>
+        <li>流动性风险：可用资金仅1,394元，无法补仓或开新仓</li>
+      </ul>
+    </div>
+    <div class="coco-section">
+      <h4>💡 CoCo 建议</h4>
+      <ul>
+        <li><span class="tip">明日策略</span>：开盘观察30分钟，若不能放量反弹至85元以上，考虑减仓</li>
+        <li><span class="tip">纪律执行</span>：回撤线触发时，不要犹豫，立即执行，这是保护本金</li>
+        <li><span class="tip">仓位管理</span>：下次建仓单票不超过总资金50%，保留至少30%现金</li>
+        <li><span class="tip">记录改进</span>：每天写"不操作理由"，即使空仓也要记录</li>
+      </ul>
+    </div>
+    <div class="coco-section">
+      <h4>📝 明日检查清单</h4>
+      <ul>
+        <li>□ 开盘前写好今日计划（买什么/卖什么/什么条件不动）</li>
+        <li>□ 观察彤程新材前30分钟成交量是否放大</li>
+        <li>□ 如果跌破82.70，触发Plan B（减仓或清仓）</li>
+        <li>□ 收盘后记录今日操作和反思</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Equity Curve Chart -->
+  <div class="panel" data-mode="review">
+    <h2>📈 资金曲线</h2>
+    <div class="chart-container" id="equity-chart-container">
+      <svg class="chart-svg" id="equity-chart" viewBox="0 0 800 200" preserveAspectRatio="none">
+        <!-- Grid lines -->
+        <line class="chart-grid" x1="0" y1="50" x2="800" y2="50"/>
+        <line class="chart-grid" x1="0" y1="100" x2="800" y2="100"/>
+        <line class="chart-grid" x1="0" y1="150" x2="800" y2="150"/>
+        <!-- Area and line will be drawn by JS -->
+      </svg>
+    </div>
+    <div style="font-size: 11px; color: var(--muted); text-align: center; margin-top: 8px;">
+      显示所有交易的累计盈亏走势 | 绿色=盈利期 红色=回撤期
+    </div>
+  </div>
+
+  <!-- Buy/Sell Suggestion -->
+  <div class="suggestion-box" data-mode="trade">
+    <h3>📊 买卖点建议</h3>
+    <p>
+      <span class="action">当前持仓：</span>彤程新材 3000股，成本90.721，现价83.69<br>
+      <span class="action">明日观察：</span>开盘价若低于83.00，大概率继续下探；若放量突破85.00，可能反弹<br>
+      <span class="action">建议动作：</span>
+      <br>• 情况A：开盘放量上涨 → 持有观察，目标看86.00-87.00区间减仓
+      <br>• 情况B：开盘弱势下跌 → 反弹至84.00-85.00时减仓一半，降低风险
+      <br>• 情况C：跌破82.70 → 执行Plan B，根据量能决定减仓或清仓
+    </p>
+  </div>
+
+  <!-- New Entry Form -->
+  <div class="panel" data-mode="trade">
+    <h2>➕ 新增交易记录</h2>
+    <div class="entry-form">
+      <div class="form-group">
+        <label>日期</label>
+        <input type="date" id="input-date">
+      </div>
+      <div class="form-group">
+        <label>品种</label>
+        <input type="text" id="input-symbol" placeholder="如: 彤程新材">
+      </div>
+      <div class="form-group">
+        <label>方向</label>
+        <select id="input-direction">
+          <option value="long" selected>做多</option>
+          <option value="short">做空</option>
+          <option value="empty">空仓</option>
+          <option value="noop">不操作</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>情绪评分 (1-5)</label>
+        <select id="input-emotion">
+          <option value="" selected>-- 选择 --</option>
+          <option value="1">1 - 恐慌/急于扳本</option>
+          <option value="2">2 - 焦虑/睡不好</option>
+          <option value="3">3 - 平静</option>
+          <option value="4">4 - 自信但理性</option>
+          <option value="5">5 - 心如止水</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>仓位(股/手)</label>
+        <input type="number" id="input-size" placeholder="3000">
+      </div>
+      <div class="form-group">
+        <label>成本价</label>
+        <input type="number" step="0.001" id="input-cost" placeholder="90.721">
+      </div>
+      <div class="form-group">
+        <label>止损价 / 回撤线</label>
+        <input type="number" step="0.001" id="input-stop" placeholder="227316或86.18">
+      </div>
+      <div class="form-group">
+        <label>止盈目标</label>
+        <input type="number" step="0.001" id="input-target" placeholder="105.00">
+      </div>
+      <div class="form-group">
+        <label>当前价 / 收盘价</label>
+        <input type="number" step="0.001" id="input-current" placeholder="83.69">
+      </div>
+      <div class="form-group full-width">
+        <label>交易标签（多选，找到你的能力圈）</label>
+        <div class="tag-group" id="tag-group">
+          <label class="tag-checkbox"><input type="checkbox" value="龙头" onchange="updateTagStyle(this)"> 龙头</label>
+          <label class="tag-checkbox"><input type="checkbox" value="跟风" onchange="updateTagStyle(this)"> 跟风</label>
+          <label class="tag-checkbox"><input type="checkbox" value="首板" onchange="updateTagStyle(this)"> 首板</label>
+          <label class="tag-checkbox"><input type="checkbox" value="反包" onchange="updateTagStyle(this)"> 反包</label>
+          <label class="tag-checkbox"><input type="checkbox" value="低吸" onchange="updateTagStyle(this)"> 低吸</label>
+          <label class="tag-checkbox"><input type="checkbox" value="打板" onchange="updateTagStyle(this)"> 打板</label>
+          <label class="tag-checkbox"><input type="checkbox" value="庄股" onchange="updateTagStyle(this)"> 庄股</label>
+          <label class="tag-checkbox"><input type="checkbox" value="其他" onchange="updateTagStyle(this)"> 其他</label>
+        </div>
+      </div>
+      <div class="form-group full-width">
+        <label>进场逻辑（为什么买？什么信号？）</label>
+        <textarea id="input-reason" rows="3" placeholder="详细记录你的买入理由，技术面+基本面+情绪面..."></textarea>
+      </div>
+      <div class="form-group full-width">
+        <label>复盘笔记（情绪/错误/改进 + CoCo批注区）</label>
+        <textarea id="input-review" rows="4" placeholder="今天哪里做得好？哪里错了？下次怎么改进？（我会在这里加批注）"></textarea>
+      </div>
+      <div class="form-group full-width">
+        <label>明日计划（Plan A/B/C）</label>
+        <textarea id="input-plan" rows="2" placeholder="涨了我怎么办 / 跌了我怎么办 / 横盘我怎么办"></textarea>
+      </div>
+      <div class="form-group" style="grid-column: span 4; display: flex; gap: 10px;">
+        <button class="btn btn-primary" onclick="addEntry()">💾 保存记录</button>
+        <button class="btn btn-secondary" onclick="clearForm()">清空</button>
+        <button class="btn btn-warning" onclick="emergencyStop()">🚨 紧急止损记录</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trade Log Table -->
+  <div class="panel" data-mode="review">
+    <h2>📊 交易记录表</h2>
+    <table id="trade-table">
+      <thead>
+        <tr>
+          <th>日期</th>
+          <th>品种</th>
+          <th>方向</th>
+          <th>情绪</th>
+          <th>标签</th>
+          <th>成本</th>
+          <th>止损/回撤</th>
+          <th>止盈</th>
+          <th>当前价</th>
+          <th>盈亏</th>
+          <th>状态</th>
+          <th>逻辑 & 复盘</th>
+        </tr>
+      </thead>
+      <tbody id="trade-tbody">
+        <!-- Entries here -->
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="export-bar">
+  <button class="btn btn-export" onclick="exportCSV()">📥 导出CSV</button>
+  <button class="btn btn-secondary" onclick="exportJSON()">📥 导出JSON</button>
+</div>
+
+<script>
+// ============================================
+// INITIAL DATA — 彤程新材持仓
+// ============================================
+let trades = JSON.parse(localStorage.getItem('quant-alpha-trades')) || [
+  {
+    date: '2026-07-06',
+    symbol: '彤程新材',
+    direction: 'long',
+    size: 3000,
+    cost: 90.721,
+    stop: 227316,
+    target: null,
+    current: 83.69,
+    emotion: 2,
+    reason: '持仓中。10%回撤线227,316元已设定。成本90.721。当前价83.69，浮亏-7.75%。',
+    review: '【Owner反思】高开没走，贪念作祟。价涨量不涨信号出现未执行。没有克服内心的小明。\\n【CoCo批注】这是典型的"看到信号不执行"问题。根本原因：全仓单吊导致没有容错空间，压力资金影响决策。改进：① 单票不超过50%仓位 ② 信号出现即行动，犹豫=成本累积 ③ 每天写不操作理由',
+    plan: 'A: 开盘放量涨→持有看86-87减仓 | B: 弱势→84-85减仓一半 | C: 跌破82.70→执行Plan B',
+    status: 'holding'
+  }
+];
+
+const COST_PRICE = 90.721;
+const STOP_AMOUNT = 227316;
+const SYMBOL = '彤程新材';
+
+// ============================================
+// UTILITIES
+// ============================================
+function formatDate() {
+  const d = new Date();
+  return d.toISOString().split('T')[0];
+}
+
+function calcPnL(cost, current, direction) {
+  if (!current || !cost || direction === 'empty' || direction === 'noop') return 0;
+  const pnl = direction === 'long' ? (current - cost) / cost : (cost - current) / cost;
+  return pnl * 100;
+}
+
+function calcMarketValue(size, current) {
+  if (!size || !current) return 0;
+  return size * current;
+}
+
+// ============================================
+// RENDER TABLE
+// ============================================
+function renderTable() {
+  const tbody = document.getElementById('trade-tbody');
+  let totalPnl = 0, wins = 0, totalClosed = 0, holding = 0, closed = 0;
+  let tradeRecords = [];
+  
+  tbody.innerHTML = trades.map((t, idx) => {
+    const pnl = calcPnL(t.cost, t.current, t.direction);
+    const mktValue = calcMarketValue(t.size, t.current);
+    const pnlClass = pnl > 0 ? 'pnl-pos' : pnl < 0 ? 'pnl-neg' : '';
+    
+    let statusTag = '';
+    if (t.direction === 'empty') {
+      statusTag = '<span class="tag tag-empty">空仓</span>';
+    } else if (t.direction === 'noop') {
+      statusTag = '<span class="tag tag-noop">不操作</span>';
+    } else if (t.status === 'holding') {
+      statusTag = '<span class="tag tag-hold">持仓中</span>';
+      holding++;
+    } else {
+      statusTag = pnl > 0 ? '<span class="tag tag-long">盈利</span>' : '<span class="tag tag-short">亏损</span>';
+      closed++; totalClosed++; totalPnl += pnl; if (pnl > 0) wins++;
+    }
+    
+    if (t.direction !== 'empty' && t.direction !== 'noop') {
+      tradeRecords.push(t);
+    }
+    
+    const dirLabel = { long: '做多', short: '做空', empty: '空仓', noop: '不操作' }[t.direction] || t.direction;
+    const stopLabel = t.stop > 1000 ? t.stop.toLocaleString() + '元' : (t.stop ? t.stop.toFixed(2) : '--');
+    
+    // Emotion score display
+    const emotionLabels = { 1: '恐慌', 2: '焦虑', 3: '平静', 4: '自信', 5: '止水' };
+    const emotionColors = { 1: '#ef4444', 2: '#f59e0b', 3: '#9ca3af', 4: '#10b981', 5: '#3b82f6' };
+    const emotionHtml = t.emotion 
+      ? `<span style="color:${emotionColors[t.emotion]};font-weight:600;">${t.emotion} - ${emotionLabels[t.emotion]}</span>`
+      : '--';
+    
+    // Trade tags display
+    let tagsHtml = '--';
+    if (t.tags && t.tags.length > 0) {
+      tagsHtml = t.tags.map(tag => `<span class="trade-tag">${tag}</span>`).join('');
+    }
+    
+    // Format review with CoCo notes
+    let reviewHtml = '';
+    if (t.review) {
+      const parts = t.review.split('\\n');
+      reviewHtml = parts.map(part => {
+        if (part.startsWith('【CoCo')) {
+          return `<div class="coco-note">${part}</div>`;
+        } else if (part.startsWith('【Owner')) {
+          return `<div class="owner">${part}</div>`;
+        }
+        return `<div>${part}</div>`;
+      }).join('');
+    }
+    
+    return `
+      <tr data-idx="${idx}">
+        <td>${t.date}</td>
+        <td><strong>${t.symbol || '--'}</strong></td>
+        <td>${dirLabel}</td>
+        <td>${emotionHtml}</td>
+        <td>${tagsHtml}</td>
+        <td>${t.cost ? t.cost.toFixed(3) : '--'}</td>
+        <td style="color:#ef4444">${stopLabel}</td>
+        <td style="color:#10b981">${t.target ? t.target.toFixed(2) : '--'}</td>
+        <td>${t.current ? t.current.toFixed(3) : '--'}</td>
+        <td class="${pnlClass}">${t.current && t.direction !== 'empty' && t.direction !== 'noop' ? pnl.toFixed(2) + '%' : '--'}</td>
+        <td>${statusTag}</td>
+        <td class="review-text">
+          <div style="color:#9ca3af;margin-bottom:4px;"><strong>逻辑:</strong> ${t.reason || '--'}</div>
+          ${reviewHtml}
+          ${t.plan ? `<div style="color:#06b6d4;margin-top:4px;"><strong>计划:</strong> ${t.plan}</div>` : ''}
+        </td>
+      </tr>
+    `;
+  }).join('');
+  
+  // Update stats
+  document.getElementById('stat-total').textContent = tradeRecords.length;
+  document.getElementById('stat-hold').textContent = holding;
+  document.getElementById('stat-closed').textContent = closed;
+  
+  const avgPnl = totalClosed > 0 ? (totalPnl / totalClosed).toFixed(2) + '%' : '--';
+  document.getElementById('stat-avg').textContent = avgPnl;
+  
+  const winrate = totalClosed > 0 ? Math.round((wins / totalClosed) * 100) + '%' : '0%';
+  document.getElementById('stat-winrate').textContent = winrate;
+  
+  // Calculate total PnL including holdings
+  let currentTotal = 0;
+  let validTrades = 0;
+  tradeRecords.forEach(t => {
+    if (t.current && t.cost) {
+      currentTotal += calcPnL(t.cost, t.current, t.direction);
+      validTrades++;
+    }
+  });
+  
+  const pnlEl = document.getElementById('stat-pnl');
+  if (validTrades > 0) {
+    const avgTotal = currentTotal / validTrades;
+    pnlEl.textContent = avgTotal.toFixed(2) + '%';
+    pnlEl.className = 'stat-value ' + (avgTotal >= 0 ? 'green' : 'red');
+  } else {
+    pnlEl.textContent = '--';
+  }
+  
+  // Update emotion stats
+  updateEmotionStats();
+  
+  // ============================================
+  // ADVANCED METRICS
+  // ============================================
+  
+  // 1. 平均持仓周期（天）
+  let totalHoldDays = 0;
+  let holdDaysCount = 0;
+  const today = new Date(formatDate());
+  
+  trades.forEach(t => {
+    if (t.direction === 'empty' || t.direction === 'noop') return;
+    const entryDate = new Date(t.date);
+    if (t.status === 'closed' && t.current) {
+      // 已平仓：用开仓日期到今天的差（简化计算）
+      // 实际应该用平仓日期，但当前数据结构没有平仓日期，用今天代替
+      const days = Math.round((today - entryDate) / (1000 * 60 * 60 * 24));
+      totalHoldDays += days;
+      holdDaysCount++;
+    } else if (t.status === 'holding') {
+      // 持仓中：计算到今天的天数
+      const days = Math.round((today - entryDate) / (1000 * 60 * 60 * 24));
+      totalHoldDays += days;
+      holdDaysCount++;
+    }
+  });
+  
+  const avgHoldDays = holdDaysCount > 0 ? (totalHoldDays / holdDaysCount).toFixed(1) : '--';
+  document.getElementById('stat-hold-days').textContent = avgHoldDays;
+  
+  // 2. 盈亏比（平均盈利 / 平均亏损绝对值）
+  let totalWin = 0, winCount = 0;
+  let totalLoss = 0, lossCount = 0;
+  
+  const closedTradeRecords = trades.filter(t => t.status === 'closed' && t.direction !== 'empty' && t.direction !== 'noop');
+  closedTradeRecords.forEach(t => {
+    const pnl = calcPnL(t.cost, t.current, t.direction);
+    if (pnl > 0) {
+      totalWin += pnl;
+      winCount++;
+    } else if (pnl < 0) {
+      totalLoss += Math.abs(pnl);
+      lossCount++;
+    }
+  });
+  
+  const avgWin = winCount > 0 ? totalWin / winCount : 0;
+  const avgLoss = lossCount > 0 ? totalLoss / lossCount : 0;
+  const profitRatio = avgLoss > 0 ? (avgWin / avgLoss).toFixed(2) : '--';
+  
+  const ratioEl = document.getElementById('stat-profit-ratio');
+  if (avgWin === 0 && avgLoss === 0) {
+    ratioEl.textContent = '--';
+    ratioEl.className = 'stat-value';
+  } else if (avgLoss === 0) {
+    ratioEl.textContent = '∞';
+    ratioEl.className = 'stat-value green';
+  } else {
+    ratioEl.textContent = profitRatio;
+    ratioEl.className = 'stat-value ' + (parseFloat(profitRatio) >= 1 ? 'green' : 'red');
+  }
+  
+  // 3. 最大回撤（历史最大浮亏）
+  let maxDrawdown = 0;
+  trades.forEach(t => {
+    if (t.direction === 'empty' || t.direction === 'noop') return;
+    if (t.cost && t.current) {
+      const pnl = calcPnL(t.cost, t.current, t.direction);
+      if (pnl < maxDrawdown) maxDrawdown = pnl;
+    }
+  });
+  
+  const ddEl = document.getElementById('stat-max-drawdown');
+  ddEl.textContent = maxDrawdown.toFixed(2) + '%';
+  ddEl.className = 'stat-value red';
+  
+  // Update alert box
+  const holdingTrade = trades.find(t => t.status === 'holding' && t.direction === 'long');
+  if (holdingTrade && holdingTrade.current) {
+    document.getElementById('alert-price').textContent = holdingTrade.current.toFixed(2);
+    const alertPnl = calcPnL(holdingTrade.cost, holdingTrade.current, 'long');
+    const alertPnlEl = document.getElementById('alert-pnl');
+    alertPnlEl.textContent = alertPnl.toFixed(2) + '%';
+    alertPnlEl.className = 'value ' + (alertPnl >= 0 ? 'green' : 'red');
+  }
+}
+
+// ============================================
+// EMOTION STATISTICS
+// ============================================
+function updateEmotionStats() {
+  const closedTrades = trades.filter(t => t.status === 'closed' && t.emotion && t.direction !== 'empty' && t.direction !== 'noop');
+  if (closedTrades.length === 0) return;
+  
+  const emotionGroups = {};
+  closedTrades.forEach(t => {
+    const e = t.emotion;
+    if (!emotionGroups[e]) emotionGroups[e] = { count: 0, wins: 0, totalPnl: 0 };
+    emotionGroups[e].count++;
+    const pnl = calcPnL(t.cost, t.current, t.direction);
+    emotionGroups[e].totalPnl += pnl;
+    if (pnl > 0) emotionGroups[e].wins++;
+  });
+  
+  // Store for display
+  window.emotionStats = emotionGroups;
+}
+
+// ============================================
+// ADD ENTRY
+// ============================================
+function addEntry() {
+  const direction = document.getElementById('input-direction').value;
+  const isSpecial = direction === 'empty' || direction === 'noop';
+  
+  const entry = {
+    date: document.getElementById('input-date').value || formatDate(),
+    symbol: document.getElementById('input-symbol').value || (isSpecial ? '--' : ''),
+    direction: direction,
+    size: isSpecial ? null : (parseFloat(document.getElementById('input-size').value) || null),
+    cost: isSpecial ? null : (parseFloat(document.getElementById('input-cost').value) || 0),
+    stop: parseFloat(document.getElementById('input-stop').value) || null,
+    target: parseFloat(document.getElementById('input-target').value) || null,
+    current: isSpecial ? null : (parseFloat(document.getElementById('input-current').value) || null),
+    emotion: parseInt(document.getElementById('input-emotion').value) || null,
+    tags: getSelectedTags(),
+    reason: document.getElementById('input-reason').value,
+    review: document.getElementById('input-review').value,
+    plan: document.getElementById('input-plan').value,
+    status: isSpecial ? direction : (document.getElementById('input-current').value ? 'closed' : 'holding')
+  };
+  
+  if (!isSpecial && (!entry.symbol || !entry.cost)) {
+    alert('请填写品种和成本价');
+    return;
+  }
+  
+  // Check checklist for trading entries (not empty/noop)
+  if (!isSpecial && !isChecklistComplete()) {
+    alert('⚠️ 请先完成「开盘前决策检查清单」的5项检查\n\n这是为了防止冲动交易。每一条都是为了保护你的本金。');
+    document.getElementById('checklist-panel').scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
+  
+  trades.push(entry);
+  localStorage.setItem('quant-alpha-trades', JSON.stringify(trades));
+  renderTable();
+  renderEquityChart();
+  clearForm();
+  alert('✅ 记录已保存');
+}
+
+// ============================================
+// EMERGENCY STOP
+// ============================================
+function emergencyStop() {
+  if (!confirm('⚠️ 确认记录紧急止损？\n\n这将记录一笔止损交易，并提醒你复盘。')) {
+    return;
+  }
+  
+  const entry = {
+    date: formatDate(),
+    symbol: '彤程新材',
+    direction: 'long',
+    size: 3000,
+    cost: 90.721,
+    stop: 227316,
+    target: null,
+    current: document.getElementById('input-current').value ? parseFloat(document.getElementById('input-current').value) : 83.69,
+    reason: '紧急止损执行',
+    review: '【Owner】触发回撤线，执行止损。\\n【CoCo】执行纪律是正确的。记录止损原因，避免重复犯错。',
+    plan: '停手3天，复盘后再开仓',
+    status: 'closed'
+  };
+  
+  // Update previous holding to closed
+  trades.forEach(t => {
+    if (t.status === 'holding') t.status = 'closed';
+  });
+  
+  trades.push(entry);
+  localStorage.setItem('quant-alpha-trades', JSON.stringify(trades));
+  renderTable();
+  renderEquityChart();
+  alert('🚨 紧急止损已记录。请立即执行交易，并停手复盘3天。');
+}
+
+// ============================================
+// CLEAR FORM
+// ============================================
+function clearForm() {
+  document.getElementById('input-date').value = formatDate();
+  document.getElementById('input-symbol').value = '';
+  document.getElementById('input-emotion').value = '';
+  document.getElementById('input-size').value = '';
+  document.getElementById('input-cost').value = '';
+  document.getElementById('input-stop').value = '';
+  document.getElementById('input-target').value = '';
+  document.getElementById('input-current').value = '';
+  document.getElementById('input-reason').value = '';
+  document.getElementById('input-review').value = '';
+  document.getElementById('input-plan').value = '';
+  // Reset tags
+  document.querySelectorAll('#tag-group input[type="checkbox"]').forEach(cb => {
+    cb.checked = false;
+    cb.parentElement.classList.remove('checked');
+  });
+}
+
+// ============================================
+// TAG FUNCTIONS
+// ============================================
+function updateTagStyle(checkbox) {
+  checkbox.parentElement.classList.toggle('checked', checkbox.checked);
+}
+
+function getSelectedTags() {
+  const tags = [];
+  document.querySelectorAll('#tag-group input[type="checkbox"]:checked').forEach(cb => {
+    tags.push(cb.value);
+  });
+  return tags;
+}
+
+// ============================================
+// EXPORT
+// ============================================
+function exportCSV() {
+  const headers = ['日期','品种','方向','情绪','标签','数量','成本','止损/回撤','止盈','当前价','状态','进场逻辑','复盘笔记','明日计划'];
+  const dirMap = { long: '做多', short: '做空', empty: '空仓', noop: '不操作' };
+  const emotionMap = { 1: '恐慌', 2: '焦虑', 3: '平静', 4: '自信', 5: '止水' };
+  const rows = trades.map(t => [
+    t.date, t.symbol || '--', dirMap[t.direction] || t.direction,
+    t.emotion ? (emotionMap[t.emotion] || t.emotion) : '',
+    t.tags ? t.tags.join('/') : '',
+    t.size || '', t.cost || '', t.stop || '', t.target || '',
+    t.current || '', t.status, t.reason || '', t.review || '', t.plan || ''
+  ]);
+  const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+  
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `quant-alpha-trades-${formatDate()}.csv`;
+  a.click();
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(trades, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `quant-alpha-trades-${formatDate()}.json`;
+  a.click();
+}
+
+// ============================================
+// CHECKLIST FUNCTIONS
+// ============================================
+function toggleChecklist(idx) {
+  const cb = document.getElementById('ck-' + idx);
+  cb.checked = !cb.checked;
+  updateChecklist();
+}
+
+function updateChecklist() {
+  let checked = 0;
+  for (let i = 0; i < 5; i++) {
+    if (document.getElementById('ck-' + i).checked) checked++;
+  }
+  const statusEl = document.getElementById('checklist-status');
+  if (checked === 5) {
+    statusEl.className = 'checklist-status ready';
+    statusEl.textContent = '✅ 检查完成，可以提交交易';
+  } else {
+    statusEl.className = 'checklist-status pending';
+    statusEl.textContent = `⚠️ 已完成 ${checked}/5 项，全部完成后才能提交新交易`;
+  }
+}
+
+function isChecklistComplete() {
+  for (let i = 0; i < 5; i++) {
+    if (!document.getElementById('ck-' + i).checked) return false;
+  }
+  return true;
+}
+
+// ============================================
+// INIT
+// ============================================
+document.getElementById('input-date').value = formatDate();
+
+// ============================================
+// QUOTE FETCH (Tencent API)
+// ============================================
+function fetchQuote() {
+  const btn = document.getElementById('quote-refresh-btn');
+  const statusEl = document.getElementById('quote-status');
+  
+  btn.classList.add('spinning');
+  btn.textContent = '🔄 获取中...';
+  statusEl.textContent = '正在连接行情服务器...';
+  
+  // Use Tencent stock quote API (JSONP compatible)
+  const script = document.createElement('script');
+  const callbackName = 'qtCallback_' + Date.now();
+  
+  window[callbackName] = function(data) {
+    try {
+      // Tencent format: v_sh603650="1~彤程新材~603650~83.69~..."
+      const match = data.match(/v_sh603650="([^"]+)"/);
+      if (match) {
+        const parts = match[1].split('~');
+        const price = parseFloat(parts[3]); // 最新价
+        const name = parts[1]; // 股票名
+        
+        if (price && price > 0) {
+          // Update display
+          document.getElementById('alert-price').textContent = price.toFixed(2);
+          const pnl = ((price - COST_PRICE) / COST_PRICE * 100).toFixed(2);
+          const pnlEl = document.getElementById('alert-pnl');
+          pnlEl.textContent = (pnl >= 0 ? '+' : '') + pnl + '%';
+          pnlEl.className = 'value ' + (pnl >= 0 ? 'green' : 'red');
+          
+          statusEl.textContent = `✅ 行情更新成功 | ${name} 最新价: ${price.toFixed(2)} | ${new Date().toLocaleString()}`;
+          statusEl.style.color = 'var(--accent)';
+          
+          // Update trades data
+          if (trades.length > 0 && trades[0].symbol === '彤程新材') {
+            trades[0].current = price;
+            localStorage.setItem('quant-alpha-trades', JSON.stringify(trades));
+            renderTable();
+          }
+        }
+      }
+    } catch (e) {
+      statusEl.textContent = '⚠️ 解析数据失败，请手动输入最新价';
+      statusEl.style.color = 'var(--accent3)';
+    }
+    
+    cleanup();
+  };
+  
+  // Fallback: if callback not triggered in 5s
+  setTimeout(() => {
+    if (window[callbackName]) {
+      statusEl.textContent = '⚠️ 行情接口超时，可能原因: ① 非交易时间 ② 接口受限。请手动输入最新价或联系我更新。';
+      statusEl.style.color = 'var(--accent3)';
+      cleanup();
+    }
+  }, 5000);
+  
+  function cleanup() {
+    btn.classList.remove('spinning');
+    btn.textContent = '🔄 刷新行情';
+    delete window[callbackName];
+    if (script.parentNode) script.parentNode.removeChild(script);
+  }
+  
+  // Try Tencent API (uses script tag for JSONP)
+  script.src = `https://qt.gtimg.cn/q=sh603650`;
+  script.onerror = () => {
+    statusEl.textContent = '⚠️ 行情接口不可用，请手动输入最新价或联系我更新';
+    statusEl.style.color = 'var(--accent3)';
+    cleanup();
+  };
+  document.head.appendChild(script);
+}
+
+// ============================================
+// INIT
+// ============================================
+function switchMode(mode) {
+  // Update buttons
+  document.getElementById('mode-trade').classList.toggle('active', mode === 'trade');
+  document.getElementById('mode-review').classList.toggle('active', mode === 'review');
+  
+  // Show/hide panels
+  document.querySelectorAll('[data-mode]').forEach(el => {
+    if (el.dataset.mode === 'shared' || el.dataset.mode === mode) {
+      el.classList.remove('panel-hidden');
+    } else {
+      el.classList.add('panel-hidden');
+    }
+  });
+  
+  // Save preference
+  localStorage.setItem('quant-alpha-mode', mode);
+}
+
+// 记住上次选择的方向
+const lastDirection = localStorage.getItem('quant-alpha-last-direction') || 'long';
+document.getElementById('input-direction').value = lastDirection;
+document.getElementById('input-direction').addEventListener('change', (e) => {
+  localStorage.setItem('quant-alpha-last-direction', e.target.value);
+});
+
+// ============================================
+// EQUITY CURVE CHART
+// ============================================
+function renderEquityChart() {
+  const svg = document.getElementById('equity-chart');
+  if (!svg) return;
+  
+  // Clear existing content (keep grid)
+  svg.innerHTML = `
+    <line class="chart-grid" x1="0" y1="50" x2="800" y2="50"/>
+    <line class="chart-grid" x1="0" y1="100" x2="800" y2="100"/>
+    <line class="chart-grid" x1="0" y1="150" x2="800" y2="150"/>
+  `;
+  
+  // Build equity curve data points
+  let equity = 252573.93; // Starting equity (initial total)
+  const points = [];
+  
+  trades.forEach((t, idx) => {
+    if (t.direction === 'empty' || t.direction === 'noop') return;
+    if (t.cost && t.current && t.size) {
+      const pnl = (t.current - t.cost) * t.size;
+      equity += pnl;
+      points.push({ x: idx, y: equity, date: t.date, pnl: pnl });
+    }
+  });
+  
+  if (points.length < 2) {
+    // Not enough data, show placeholder
+    svg.innerHTML += `<text x="400" y="100" text-anchor="middle" class="chart-label">数据不足，需要至少2笔交易记录</text>`;
+    return;
+  }
+  
+  // Calculate scales
+  const minEquity = Math.min(...points.map(p => p.y));
+  const maxEquity = Math.max(...points.map(p => p.y));
+  const range = maxEquity - minEquity || 1;
+  
+  const xScale = 800 / (points.length - 1);
+  const yScale = 180 / range;
+  
+  // Generate path
+  let pathD = '';
+  let areaD = '';
+  
+  points.forEach((p, i) => {
+    const x = i * xScale;
+    const y = 190 - (p.y - minEquity) * yScale;
+    
+    if (i === 0) {
+      pathD += `M ${x} ${y}`;
+      areaD += `M ${x} 190 L ${x} ${y}`;
+    } else {
+      pathD += ` L ${x} ${y}`;
+      areaD += ` L ${x} ${y}`;
+    }
+  });
+  areaD += ' L ' + ((points.length - 1) * xScale) + ' 190 Z';
+  
+  // Determine color based on overall trend
+  const isProfit = points[points.length - 1].y >= points[0].y;
+  const lineColor = isProfit ? '#10b981' : '#ef4444';
+  
+  // Draw area
+  svg.innerHTML += `<path class="chart-area" d="${areaD}" fill="${lineColor}"/>`;
+  
+  // Draw line
+  svg.innerHTML += `<path class="chart-line" d="${pathD}" stroke="${lineColor}"/>`;
+  
+  // Draw points
+  points.forEach((p, i) => {
+    const x = i * xScale;
+    const y = 190 - (p.y - minEquity) * yScale;
+    svg.innerHTML += `<circle class="chart-point" cx="${x}" cy="${y}" fill="${lineColor}"/>`;
+  });
+  
+  // Labels
+  svg.innerHTML += `<text x="10" y="20" class="chart-label">最高: ${maxEquity.toLocaleString()}</text>`;
+  svg.innerHTML += `<text x="10" y="195" class="chart-label">最低: ${minEquity.toLocaleString()}</text>`;
+}
+
+// Restore mode preference
+const savedMode = localStorage.getItem('quant-alpha-mode') || 'trade';
+switchMode(savedMode);
+
+renderTable();
+renderEquityChart();
+</script>
+
+</body>
+</html>
